@@ -78,7 +78,7 @@
 
                 this.isPlaying = true;
 
-                this.actionInterval = 0.2;
+                this.actionInterval = 0.05;
 
                 this.lastActionTime = new Date().getTime();
 
@@ -136,6 +136,8 @@
             }
 
             stop() {
+                console.log('结束');
+
                 this.isPlaying = !this.isPlaying;
             }
             createBlock() {
@@ -326,11 +328,15 @@
                         code = 1;
 
 
+                        if (this.checkGameOver()) {
 
-                        if (p[0] == -1) {
                             this.stop();
-                            //游戏结束；
+
+                            //游戏结束
+
                         }
+
+
                         break;
                         //碰到已有方块
                     }
@@ -339,7 +345,17 @@
                 return code;
 
             }
+            checkGameOver() {
 
+
+                for (let p of this.movingData) {
+                    if (p[0] < 0) {
+                        return true;
+                    }
+                }
+
+                return false;
+            }
             renderCanvas() {
 
                 this.ctx.clearRect(0, 0, 250, 500);
