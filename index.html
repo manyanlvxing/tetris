@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>俄罗斯方块</title>
+
+    <style>
+        * {
+            margin: 0;
+        }
+
+        body {
+
+            text-align: center;
+        }
+
+        .title {
+            text-align: center;
+
+            color: greenyellow;
+
+            margin: 20px;
+
+        }
+
+        .box {
+
+            margin: 0 auto;
+        }
+
+        .change {
+
+            width: 80px;
+            height: 30px;
+        }
+    </style>
+
+</head>
+
+<body>
+    <p class="title">俄罗斯方块</p>
+
+
+    <canvas id="game" style=" border: 1px solid black; margin: 20px auto;" width="250px" height="500px"></canvas>
+
+    <div class="box">
+        <button class="change" onclick="change()">变形</button>
+        <button class="change" onclick="left()">左</button>
+        <button class="change" onclick="right()">右</button>
+        <button class="change" onclick="reStart()">重新开始</button>
+
+    </div>
+
+
+    <script>
+
+        class Game {
+            constructor() {
+                this.blockWidth = 25;
+                this.blockHeight = 25;
+
+
+                //每次生成的方块数量
+                this.blockNum = 4;
+
+
+                //移动的方块数据
+                this.movingData = [];
+
+                this.ctx = document.getElementById('game').getContext('2d');
+
+
+
+
+
+
+                this.isPlaying = true;
+
+                this.actionInterval = 0.2;
+
+                this.lastActionTime = new Date().getTime();
+
+
+                this.maxW = 250 / this.blockWidth;
+
+                this.maxH = 500 / this.blockHeight;
+
+
+                // 地图数组
+                this.mapData = Array(this.maxH).fill(null).map((value) => Array(this.maxW).fill(0));
+
+
+            }
+
+            start() {
+
+                requestAnimationFrame(this.loop.bind(this));
+
+            }
+            reStart() {
+                this.movingData = [];
+                this.isPlaying = true;
+                this.mapData = Array(20).fill(null).map((value) => Array(10).fill(0));
+
+            }
+            loop() {
+
+
+                this.render();
+
+                requestAnimationFrame(this.loop.bind(this));
+
+            }
+            render() {
+
+                if (this.isPlaying && new Date().getTime() - this.lastActionTime > this.actionInterval * 1000) {
+
+                    if (this.movingData.length != 0) {
+                        this.action();
+
+
+                    } else {
+                        this.movingData = this.createBlock();
+                    }
+
+
+                    this.lastActionTime = new Date().getTime();
+
+                }
+
+
+                this.renderCanvas();
+
+            }
+
+            stop() {
+                this.isPlaying = !this.isPlaying;
+            }
+            createBlock() {
+
+                let shapes = this.getAllShape();
+
+                let data = shapes[Math.floor(Math.random() * shapes.length)];
+
+
+                data.sort((a, b) => (b[0] - a[0]));
+
+                let max = data[0][0];
+
+                data.forEach((value, index, arr) => {
+                    arr[index][0] -= max;
+                });
+
+
+                return data;
+            }
+            getAllShape() {
+
+                //获取所有可用的变换形态
+
+
+                let shapes = [];
+
+
+                let flag = Array(5).fill(null).map(value => Array(5).fill(null));
+
+
+
+                var travel = (x, y, num) => {
+
+
+                    if (num >= this.blockNum) {
+
+                        //去重
+                        if (!isAlreadyExit(res)) {
+                            shapes.push([...res]);
+                        }
+
+                        return;
+                    }
+
+                    //获取下一步相连地块
+                    let list = getNextStep(x, y);
+
+
+                    for (let p of list) {
+                        res.push([p[0], p[1]]);
+
+                        flag[p[0]][p[1]] = true;
+                        travel(p[0], p[1], num + 1);
+                        flag[p[0]][p[1]] = null;
+                        res.pop();
+                    }
+
+                }
+
+
+
+                let getNextStep = (x, y) => {
+                    let data = [];
+
+                    // let dir = [[0, -1], [0, 1], [1, 0], [-1, 0], [-1, 1], [1, 1], [-1, -1], [1, -1]];
+
+                    let dir = [[0, -1], [0, 1], [1, 0], [-1, 0]];
+
+                    for (let d of dir) {
+
+                        if (x + d[0] <= this.blockNum - 1 && x + d[0] >= 0 && y + d[1] <= this.blockNum - 1 && y + d[1] >= 0 && !flag[x + d[0]][y + d[1]]) {
+                            data.push([x + d[0], y + d[1]]);
+                        }
+
+                    }
+
+                    return data;
+
+
+                }
+
+
+                function isAlreadyExit(arr) {
+                    let list = [];
+
+
+                    for (let i = 0; i < arr.length; i++) {
+                        list[i] = [];
+
+
+                        for (let value of arr[i]) {
+                            list[i].push(value);
+                        }
+                    }
+
+                    list.sort((a, b) => (a[0] - b[0] || a[1] - b[1]));
+
+
+                    let flag = false;
+
+                    for (let value of shapes) {
+                        if (value.toString() == list.toString()) {
+                            flag = true;
+                            break;
+                        }
+                    }
+
+                    return flag;
+
+
+                }
+
+
+                let res = [];
+
+                for (let i = 0; i < this.blockNum; i++) {
+                    for (let j = 0; j < this.blockNum; j++) {
+                        res.push([i, j]);
+                        flag[i][j] = true;
+                        travel(i, j, 1);
+                        flag[i][j] = null;
+                        res.pop();
+                    }
+
+                }
+                return shapes;
+            }
+            action() {
+
+                let actionCode = this.getActionCode();
+
+                if (actionCode == 0) {
+                    //正常，往下移动
+                    this.movingData.forEach((value) => {
+                        value[0] += 1;
+                    })
+                } else if (actionCode == 1 || actionCode == 2) {
+                    for (let pos of this.movingData) {
+                        if (pos[0] >= 0 && pos[0] < this.maxH && pos[1] >= 0 && pos[1] < this.maxW)
+                            //碰到已有地块或地面
+                            this.mapData[pos[0]][pos[1]] = 1;
+                    }
+
+                    this.clearBlock();
+
+                    this.movingData = [];
+                }
+            }
+            clearBlock() {
+                let str = Array(10).fill(1).toString();
+
+
+                for (let i = this.mapData.length - 1; i >= 0; i--) {
+                    if (this.mapData[i].toString() == str) {
+                        this.mapData[i] = Array(10).fill(0);
+                        this.moveMapData(i);
+                        i++;
+                    }
+
+                }
+
+
+            }
+            moveMapData(lineNum) {
+
+                for (let i = this.mapData.length - 1; i >= 0; i--) {
+
+                    if (i < lineNum) {
+                        this.mapData[i + 1] = this.mapData[i];
+                    }
+                }
+            }
+            getActionCode() {
+
+                let code = 0;
+
+                for (let p of this.movingData) {
+
+                    if (p[0] + 1 >= this.maxH) {
+                        code = 2;
+                        break;
+                        //碰到地面
+                    } else if (
+                        p[0] + 1 >= 0 && p[0] + 1 < 20 &&
+                        this.mapData[p[0] + 1][p[1]] == 1) {
+
+                        code = 1;
+
+
+
+                        if (p[0] == -1) {
+                            this.stop();
+                            //游戏结束；
+                        }
+                        break;
+                        //碰到已有方块
+                    }
+                }
+
+                return code;
+
+            }
+
+            renderCanvas() {
+
+                this.ctx.clearRect(0, 0, 250, 500);
+
+
+                for (let p of this.movingData) {
+                    this.drawRect(25 * p[1], 25 * p[0], 25, 25);
+
+                }
+
+
+                for (let i = 0; i < this.mapData.length; i++) {
+                    for (let j = 0; j < this.mapData[i].length; j++) {
+                        if (this.mapData[i][j] == 1) {
+                            this.drawRect(25 * j, 25 * i, 25, 25);
+                        }
+                    }
+                }
+
+
+            }
+            drawRect(x, y, w, h) {
+                this.ctx.fillStyle = "#000000";
+                this.ctx.fillRect(x, y, w, h);
+                this.ctx.strokeStyle = '#ffffff';
+                this.ctx.strokeRect(x, y, w, h);
+
+
+            }
+            move(left = true) {
+                if (this.movingData.length > 0) {
+                    if (this.checkMoveValid(left)) {
+                        this.movingData.forEach((value) => {
+                            left ? value[1] -= 1 : value[1] += 1;
+                        })
+                    }
+                }
+            }
+            checkMoveValid(left = true) {
+
+                let flag = true;
+
+                if (left) {
+                    for (let p of this.movingData) {
+                        if (p[1] - 1 < 0 || (this.mapData[p[0]] && this.mapData[p[0]][p[1] - 1] == 1)) {
+                            flag = false;
+                            break;
+                        }
+                    }
+                } else {
+                    for (let p of this.movingData) {
+                        if (p[1] + 1 >= this.maxW || (this.mapData[p[0]] && this.mapData[p[0]][p[1] + 1] == 1)) {
+                            flag = false;
+                            break;
+                        }
+                    }
+                }
+
+                return flag;
+
+            }
+            change() {
+
+                if (this.movingData.length <= 0) return;
+
+                let data = this.createBlock();
+
+                while (this.isSame(data, this.movingData)) {
+                    data = this.createBlock();
+                }
+
+                let offset = this.movingData[0][0];
+
+
+                let list = [...this.movingData];
+
+                list.sort((a, b) => {
+                    return a[1] - b[1];
+                })
+
+                data.sort((a, b) => (a[1] - b[1]))
+
+
+                let offsetX = list[0][1] - data[0][1];
+
+
+                data.forEach((value) => {
+                    value[0] += offset;
+                    value[1] += offsetX;
+                })
+
+
+                this.movingData = data;
+            }
+
+            isSame(arr1, arr2) {
+                let l = [...arr1];
+                let m = [...arr2];
+
+
+                l.sort((a, b) => (a[0] - b[0] || a[1] - b[1]));
+                m.sort((a, b) => (a[0] - b[0] || a[1] - b[1]));
+
+
+                let disX = m[0][0] - l[0][0];
+                let disY = m[0][1] - l[0][1];
+
+
+                let flag = true;
+
+
+                for (let i = 0; i < l.length; i++) {
+
+                    if (l[i][0] + disX != m[i][0] || l[i][1] + disY != m[i][1]) {
+                        flag = false;
+                        break;
+                    }
+                }
+
+                return flag;
+
+            }
+        }
+
+        let game = new Game();
+
+        game.start();
+
+
+        function left() {
+            game.move(true);
+        }
+
+        function right() {
+            game.move(false);
+        }
+
+        function change() {
+            game.change();
+        }
+
+        function reStart() {
+            game.reStart();
+        }
+
+    </script>
+
+
+</body>
+
+</html>
